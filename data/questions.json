@@ -1,0 +1,297 @@
+[
+  {
+    "id": "q1",
+    "stage": 0,
+    "title": "運動紀錄",
+    "type": "multiple",
+    "prompt": "陌生人可以從這筆運動紀錄，合理推測什麼？",
+    "hint": "觀察重複出現的時間、路線與起點。",
+    "cards": "activity",
+    "options": [
+      {
+        "id": "time",
+        "text": "固定出現的時間",
+        "correct": true,
+        "reason": "每週二、四 08:20 重複出現，可能暴露固定運動時段。"
+      },
+      {
+        "id": "route",
+        "text": "常用的運動路線",
+        "correct": true,
+        "reason": "公開完整路線，讓重複經過的路段成為可比對的線索。"
+      },
+      {
+        "id": "location",
+        "text": "可能經常活動的地點",
+        "correct": true,
+        "reason": "相同起點與路段，可支持常用活動地點的推測。"
+      },
+      {
+        "id": "address",
+        "text": "確切的住家門牌",
+        "correct": false,
+        "reason": "起點不一定是住家；這張卡沒有足夠資料確認門牌。"
+      }
+    ],
+    "explanation": "固定時間＋重複路線，可以拼出生活規律。活動起點只能支持地點推測，不能直接當成住址。"
+  },
+  {
+    "id": "q2",
+    "stage": 0,
+    "title": "公開文件",
+    "type": "multiple",
+    "prompt": "製作這份文件的公開版時，哪些內容應移除或去識別化？",
+    "hint": "不只看正文，也別忘了文件內附的識別資訊。",
+    "cards": "document",
+    "options": [
+      {
+        "id": "identity",
+        "text": "姓名、學校與學號",
+        "correct": true,
+        "reason": "這些欄位能縮小身分範圍，應在公開版移除或去識別化。"
+      },
+      {
+        "id": "email",
+        "text": "信箱與連到個人資料的 QR Code",
+        "correct": true,
+        "reason": "信箱可連結其他帳號；本案例的 QR Code 連到個人資料頁，也需要移除。"
+      },
+      {
+        "id": "metadata",
+        "text": "文件作者等中繼資料",
+        "correct": true,
+        "reason": "正文遮掉姓名後，檔案屬性中的作者資訊仍可能留下身分線索。"
+      },
+      {
+        "id": "layout",
+        "text": "不含個資的標題、頁碼與版面",
+        "correct": false,
+        "reason": "一般標題與頁碼不是本案例中的識別線索，不需要為此刪除。"
+      }
+    ],
+    "explanation": "姓名與信箱會把公開文件連到具體身分。檔案作者、學號與連到個人資料的 QR Code，也都要一起檢查。"
+  },
+  {
+    "id": "q3",
+    "stage": 0,
+    "title": "帳號關聯",
+    "type": "single",
+    "prompt": "兩個平台都沒有完整地址，為什麼仍可能產生關聯風險？",
+    "hint": "比較兩張卡片上重複出現的識別特徵。",
+    "cards": "accounts",
+    "options": [
+      {
+        "id": "safe",
+        "text": "沒有完整地址，就不會有關聯風險",
+        "correct": false,
+        "reason": "帳號與頭像也能成為比對線索，不必先有地址。"
+      },
+      {
+        "id": "same",
+        "text": "相同帳號與頭像，讓兩邊的資料更容易被連在一起",
+        "correct": true,
+        "reason": "重複的識別特徵支持跨平台關聯，再結合文件與路線，可能拼出更多資訊。"
+      },
+      {
+        "id": "password",
+        "text": "帳號名稱相同，就代表密碼也相同",
+        "correct": false,
+        "reason": "公開的帳號名稱無法證明密碼相同，這不是卡片能支持的推論。"
+      },
+      {
+        "id": "unrelated",
+        "text": "只要是不同平台，資料就完全無關",
+        "correct": false,
+        "reason": "即使平台不同，人們仍可能藉由重複識別特徵比對資料。"
+      }
+    ],
+    "explanation": "相同帳號＋相同頭像，會提高資料被視為同一人的可能性；單靠這些特徵仍不能確證身分，需要其他線索互相佐證。"
+  },
+  {
+    "id": "q4",
+    "stage": 0,
+    "title": "跨平台拼圖",
+    "type": "multiple",
+    "prompt": "把三張公開資料卡放在一起，目前可以合理推測哪些資訊？",
+    "hint": "只選有資料支持的結論，不把推測當成確定事實。",
+    "cards": "all",
+    "options": [
+      {
+        "id": "identity",
+        "text": "角色的姓名與所屬學校",
+        "correct": true,
+        "reason": "公開文件列出了姓名、學校，帳號關聯又讓這份資料可與其他卡片比對。"
+      },
+      {
+        "id": "location",
+        "text": "經常出現的地點或路段",
+        "correct": true,
+        "reason": "運動紀錄重複顯示星橋步道與同一起點，支持常用活動區域的推測。"
+      },
+      {
+        "id": "time",
+        "text": "可能固定運動的時間",
+        "correct": true,
+        "reason": "每週二、四 08:20 的重複紀錄，透露可能的運動規律。"
+      },
+      {
+        "id": "everything",
+        "text": "確切住址、密碼與所有行程",
+        "correct": false,
+        "reason": "卡片沒有門牌、密碼或完整日程，不能從有限線索推論全部資訊。"
+      }
+    ],
+    "explanation": "真正的風險不是某一筆資料，而是資料之間可以互相證明。線索越容易被連起來，就越可能暴露原本不想公開的身分與規律。"
+  },
+  {
+    "id": "q5",
+    "stage": 1,
+    "title": "運動平台設定",
+    "type": "single",
+    "prompt": "想保留運動紀錄，又降低線索被串聯的機會，哪個做法較合適？",
+    "hint": "選擇兼顧使用需求與隱私的方式。",
+    "cards": "activity",
+    "options": [
+      {
+        "id": "live",
+        "text": "照常即時公開完整活動",
+        "correct": false,
+        "reason": "即時公布完整路線與時間，仍可能讓人比對活動規律。"
+      },
+      {
+        "id": "title",
+        "text": "只隱藏運動名稱",
+        "correct": false,
+        "reason": "改掉標題後，起點、路線與開始時間仍然公開。"
+      },
+      {
+        "id": "privacy",
+        "text": "限制活動可見度，並隱藏起訖點",
+        "correct": true,
+        "reason": "減少能看見活動的人，並遮蔽敏感起訖點，能降低可比對的線索。"
+      },
+      {
+        "id": "delete",
+        "text": "刪除所有運動紀錄",
+        "correct": false,
+        "reason": "刪除可以減少資料，但也失去紀錄用途；本題希望兼顧運動紀錄需求。"
+      }
+    ],
+    "explanation": "限制可見度、隱藏起訖點是第一步。還可以隱藏整張地圖與開始時間，避免即時發布固定路線，並回頭檢查舊紀錄。"
+  },
+  {
+    "id": "q6",
+    "stage": 1,
+    "title": "文件公開方式",
+    "type": "single",
+    "prompt": "要分享申請文件的寫作經驗，哪個做法能較完整地減少身分線索？",
+    "hint": "分享有用內容，不必一起公開作者的身分資料。",
+    "cards": "document",
+    "options": [
+      {
+        "id": "original",
+        "text": "直接上傳申請文件原檔",
+        "correct": false,
+        "reason": "原檔裡的姓名、信箱、學號與作者資訊都可能被讀取。"
+      },
+      {
+        "id": "filename",
+        "text": "只修改檔名",
+        "correct": false,
+        "reason": "檔名改了，正文與中繼資料中的個資仍然存在。"
+      },
+      {
+        "id": "public",
+        "text": "另製去識別化公開版，移除識別欄位、QR Code 與中繼資料",
+        "correct": true,
+        "reason": "公開版保留可分享的內容，移除正文與檔案屬性裡可識別人的線索。"
+      },
+      {
+        "id": "initial",
+        "text": "姓名改成縮寫，但保留原信箱",
+        "correct": false,
+        "reason": "原信箱仍可與其他帳號比對，姓名縮寫無法切斷這條連結。"
+      }
+    ],
+    "explanation": "把原檔與公開版分開。移除個資後，重新開啟輸出檔，檢查可複製文字、QR Code 與作者資訊；不需公開時就使用私人設定。"
+  },
+  {
+    "id": "q7",
+    "stage": 1,
+    "title": "帳號使用方式",
+    "type": "single",
+    "prompt": "怎麼降低一次搜尋就把不同用途帳號串起來的機會？",
+    "hint": "思考公開識別特徵，而不只是登入安全。",
+    "cards": "accounts",
+    "options": [
+      {
+        "id": "reuse",
+        "text": "所有平台使用相同帳號與頭像",
+        "correct": false,
+        "reason": "重複識別特徵更容易讓分散資料被比對。"
+      },
+      {
+        "id": "password",
+        "text": "只更換密碼",
+        "correct": false,
+        "reason": "換密碼有助登入安全，但不會移除公開帳號、頭像與簡介之間的關聯。"
+      },
+      {
+        "id": "separate",
+        "text": "依用途分流帳號名稱、頭像及簡介",
+        "correct": true,
+        "reason": "減少重複識別特徵，可降低不同用途帳號被直接串聯的機會。"
+      },
+      {
+        "id": "bio",
+        "text": "在簡介補上更多身分資料",
+        "correct": false,
+        "reason": "補上姓名、學校或其他平台連結，可能讓兩邊更容易互相佐證。"
+      }
+    ],
+    "explanation": "依用途區分帳號名稱、頭像與簡介，也留意跨平台連結。這能降低直接關聯的機會，但不保證其他內容不會形成線索。"
+  },
+  {
+    "id": "q8",
+    "stage": 2,
+    "title": "陌生人視角檢查",
+    "type": "multiple",
+    "prompt": "只依下方示範修正版，還能確認哪些資訊？",
+    "hint": "無論前面如何作答，本題都使用這組採用建議防護方式的示範資料。",
+    "cards": "protected",
+    "options": [
+      {
+        "id": "name",
+        "text": "真實姓名",
+        "correct": false,
+        "reason": "公開文件的姓名與作者欄位已移除，這組資料無法確認真實姓名。"
+      },
+      {
+        "id": "location",
+        "text": "固定地點",
+        "correct": false,
+        "reason": "公開運動摘要未顯示路線與起訖點，無法確認固定地點。"
+      },
+      {
+        "id": "time",
+        "text": "固定時間",
+        "correct": false,
+        "reason": "開始日期與時間已隱藏，且採延後分享，這組資料無法確認固定時段。"
+      },
+      {
+        "id": "account",
+        "text": "其他平台帳號",
+        "correct": false,
+        "reason": "名稱、頭像與簡介已分流，也沒有跨平台連結，這組資料不足以建立帳號關聯。"
+      },
+      {
+        "id": "none",
+        "text": "以上皆無法確認",
+        "correct": true,
+        "reason": "僅依這組修正後公開資料，四項資訊目前都無法確認。"
+      }
+    ],
+    "exclusive": "none",
+    "explanation": "僅依本題展示的修正後公開資料，目前無法確認這四項資訊。這些調整降低了線索被串聯的機會，但不代表其他公開頁面也沒有線索，或真實帳號已完全安全。"
+  }
+]
