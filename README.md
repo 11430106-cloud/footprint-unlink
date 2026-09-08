@@ -12,6 +12,12 @@
 
 使用 Node.js 22.13 以上；本次在 Node.js 24 上建置。靜態成品在 `dist/client`，不需要網站後端。Sites 發布設定在 `.openai/hosting.json`。
 
+## GitHub Pages
+
+使用者選擇 GitHub Pages 作為同學使用的正式網址。自動發布流程在 `.github/workflows/pages.yml`：上傳 main 後，自動型別檢查、測驗測試、建置及發布。需先在儲存庫 Settings → Pages 選 GitHub Actions。
+
+`NEXT_PUBLIC_BASE_PATH` 由 configure-pages 的 base_path 輸出設定，自動支援一般儲存庫子路徑與帳號首頁。本機開發不設定此變數。完整步驟請看 `GitHub發布教學.md`。
+
 ## 修改內容
 
 題目、選項及逐項解說集中在 `data/questions.json`。虛構資料卡在 `components/evidence.tsx`；計分與狀態轉換在 `lib/quiz-engine.ts`；檢核卡在 `components/checklist.tsx`，列印樣式在 `app/globals.css`。
