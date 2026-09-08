@@ -1,0 +1,26 @@
+{
+  "options": [
+    {"id":"school","label":"學校／工作場所","category":"identity"},
+    {"id":"photo","label":"個人照片","category":"identity"},
+    {"id":"document","label":"公開文件","category":"identity"},
+    {"id":"email","label":"Email（只勾選類型）","category":"identity"},
+    {"id":"route","label":"運動路線","category":"location"},
+    {"id":"live","label":"即時位置／打卡","category":"location"},
+    {"id":"routine","label":"固定活動時間","category":"time"},
+    {"id":"activity","label":"公開活動紀錄","category":"time"},
+    {"id":"username","label":"多個平台使用相同帳號名稱","category":"link"},
+    {"id":"avatar","label":"多個平台使用相同頭像","category":"link"},
+    {"id":"none","label":"以上皆無","category":"other"},
+    {"id":"other","label":"其他資訊類型","category":"other"}
+  ],
+  "rules": [
+    {"id":"route-time","category":"location","priority":10,"allOf":["route","routine"],"title":"位置與時間形成生活規律","explanation":"長期公開相同路線與固定時間，可能增加生活規律被推測的機會。","actions":["檢查運動紀錄的可見度，限制不必要的公開。","查看是否能從地圖認出起訖點，必要時隱藏整張地圖。","隱藏開始時間，避免固定時段即時分享位置。"]},
+    {"id":"school-account","category":"link","priority":20,"allOf":["school","username"],"title":"身分與平台之間存在連結","explanation":"學校或工作場所能縮小身分範圍；相同帳號名稱可能把這些資訊帶到其他平台。","actions":["檢查公開簡介是否需要保留學校或工作場所。","依用途適度區分帳號名稱、頭像與簡介。","登出後檢查自己的不同平台是否仍互相連結。"]},
+    {"id":"document-email","category":"identity","priority":30,"allOf":["document","email"],"title":"公開文件可能擴散身分資訊","explanation":"文件中的聯絡資訊可能成為連到其他資料的共同特徵。只改檔名或姓名縮寫，仍可能保留這條連結。","actions":["另製文件公開版，移除不必要的姓名、學校與信箱。","檢查個人資料 QR Code 與檔案作者等中繼資料。","重新開啟公開版確認移除成功；無須公開時改為私人分享。"]},
+    {"id":"location-basic","category":"location","priority":40,"anyOf":["route","live"],"title":"優先回查公開的位置","explanation":"路線、起訖點與即時打卡都可能透露活動地點，再與其他資料形成關聯。","actions":["限制路線與打卡的可見範圍，隱藏敏感起訖點。","離開地點後再分享，避免即時公開固定行程。","回頭檢查過去貼文、照片背景與定位標記。"]},
+    {"id":"time-basic","category":"time","priority":50,"anyOf":["routine","activity"],"title":"回查重複出現的時間","explanation":"分散的活動紀錄如果反覆出現在同一時段，可能讓他人推測你的固定規律。","actions":["查看公開紀錄是否保留開始日期、時間與活動地點。","減少即時公開固定行程，必要時限制舊紀錄可見度。","請信任的人只看你的公開頁面，檢查能否看出固定規律。"]},
+    {"id":"link-basic","category":"link","priority":60,"anyOf":["username","avatar"],"title":"回查跨平台的相同特徵","explanation":"相同帳號名稱與頭像可能讓不同用途的公開資料更容易被連在一起。","actions":["檢查不同用途的帳號是否使用相同名稱、頭像與簡介。","移除不必要的跨平台連結與重複識別資訊。","登出後回查自己的公開頁面，確認調整是否生效。"]},
+    {"id":"identity-basic","category":"identity","priority":70,"anyOf":["school","photo","document","email"],"title":"回查可以辨識身分的資訊","explanation":"學校、工作場所、照片、文件與信箱可能在組合後縮小身分範圍。","actions":["檢查公開資料是否含不必要的姓名、學校、工作場所或聯絡資訊。","照片留意背景、制服、識別證與定位資訊。","文件另製公開版，並檢查 QR Code 和作者中繼資料。"]},
+    {"id":"other-basic","category":"other","priority":80,"anyOf":["other"],"title":"把其他資訊放回四個問題檢查","explanation":"未列出的資訊類型需要你自行對照，這份建議沒有分析具體內容。","actions":["它能否透露身分、位置或固定時間？","是否有特徵可連到自己的另一個平台？","移除不必要線索後，請信任的人交叉檢查自己的公開內容。"]}
+  ]
+}
