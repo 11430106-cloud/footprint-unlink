@@ -17,7 +17,7 @@ test('each answer subset scores only when the exact correct set is selected',()=
 test('complete correct attempt returns 40+40+20=100, locks answers, and resets every field',()=>{
  let s=transition(initialState(),{type:'intro'},questions);s=transition(s,{type:'start'},questions);
  for(const q of questions){const ids=q.options.filter(o=>o.correct).map(o=>o.id);s=transition(s,{type:'submit',ids},questions);assert.throws(()=>transition(s,{type:'submit',ids},questions));assert.throws(()=>transition(s,{type:'select',id:ids[0]},questions));s=transition(s,{type:'next'},questions);}
- assert.equal(s.view,'self');assert.deepEqual(calculateScores(questions,s.answers),{parts:[40,40,20],total:100,rank:'斷鏈高手'});
+ assert.equal(s.view,'self');assert.deepEqual(calculateScores(questions,s.answers),{parts:[40,40,20],total:100,rank:'防護高手'});
  s=transition(s,{type:'submit-self',ids:['route','routine']},questions);assert.equal(s.view,'result');assert.deepEqual(s.selfChoices,['route','routine']);assert.deepEqual(transition(s,{type:'reset'},questions),initialState());
 });
 test('incomplete and malformed answers cannot advance or corrupt state',()=>{
@@ -30,7 +30,7 @@ test('none selection is exclusive in both directions and can be unchecked',()=>{
  s=transition(s,{type:'select',id:'name'},questions);s=transition(s,{type:'select',id:'none'},questions);assert.deepEqual(s.selected,['none']);s=transition(s,{type:'select',id:'location'},questions);assert.deepEqual(s.selected,['location']);s=transition(s,{type:'select',id:'location'},questions);assert.deepEqual(s.selected,[]);
 });
 test('all 256 correctness combinations sum displayed components exactly and respect tier boundaries',()=>{
- for(let mask=0;mask<256;mask++){const answers:Record<string,string[]>={};questions.forEach((q,i)=>{answers[q.id]=mask&(1<<i)?q.options.filter(o=>o.correct).map(o=>o.id):[];});const scores=calculateScores(questions,answers);assert.equal(scores.total,scores.parts.reduce((a,b)=>a+b,0));assert.ok(scores.total>=0&&scores.total<=100);assert.equal(scores.rank,scores.total>=80?'斷鏈高手':scores.total>=60?'足跡觀察員':'線索待清理');}
+ for(let mask=0;mask<256;mask++){const answers:Record<string,string[]>={};questions.forEach((q,i)=>{answers[q.id]=mask&(1<<i)?q.options.filter(o=>o.correct).map(o=>o.id):[];});const scores=calculateScores(questions,answers);assert.equal(scores.total,scores.parts.reduce((a,b)=>a+b,0));assert.ok(scores.total>=0&&scores.total<=100);assert.equal(scores.rank,scores.total>=80?'防護高手':scores.total>=60?'足跡觀察員':'線索待清理');}
  assert.equal(calculateScores(questions,{}).total,0);
 });
 test('self-check rejects invalid IDs, duplicates, empty selections and contradictory none',()=>{

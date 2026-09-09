@@ -50,5 +50,5 @@ export function calculateScores(questions:Question[],answers:Record<string,strin
  const maxima=[40,40,20];
  const parts=maxima.map((max,stage)=>{const items=questions.filter(q=>q.stage===stage);return Math.round(items.filter(q=>isCorrect(q,answers[q.id]??[])).length/items.length*max);});
  const total=parts.reduce((a,b)=>a+b,0);
- return {parts,total,rank:total>=80?'斷鏈高手':total>=60?'足跡觀察員':'線索待清理'};
+ return {parts,total,rank:total>=80?'防護高手':total>=60?'足跡觀察員':'線索待清理'};
 }
