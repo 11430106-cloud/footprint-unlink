@@ -19,7 +19,7 @@ export function SelfCheck({ selected, onToggle, onSubmit }: { selected: string[]
   }
   return <main className="self-main">
     <div className="case-label"><span className="signal" /> 04 回到自己 <span>八題情境測驗已完成</span></div>
-    <h1>剛剛是沈有稜，<br /><em>現在，想想你自己。</em></h1>
+    <h1>剛剛是沈有梭，<br /><em>現在，想想你自己。</em></h1>
     <p className="lead">你平常可能公開哪些資訊？<br />勾選符合的類型，找出可以帶回日常的回查重點。</p>
     <div className="self-privacy"><ShieldCheck size={21} /><p>只選資訊類型，不必提供姓名、帳號或實際內容。這一段沒有對錯，也不計入測驗分數。</p></div>
     <form onSubmit={event => { event.preventDefault(); onSubmit(); }}>

@@ -20,7 +20,7 @@ function ActivityCard({safe=false,compact=false}:{safe?:boolean;compact?:boolean
 }
 function DocumentCard({safe=false,compact=false}:{safe?:boolean;compact?:boolean}) {
  return <article className="evidence-card"><CardHead kind="document" label="頁間 · 公開文件" protectedView={safe}/><Profile name={safe?'page_studio':'shenbike24'} different={safe}/><div className="document-sheet"><div className="doc-label">DOCUMENT / {safe?'公開版':'原始檔'}</div><h3>{safe?'申請文件寫作筆記':'學習計畫申請書'}</h3>
- {safe?<><p>分享段落架構與寫作方法。</p><div className="removed-fields">姓名、學校、學號、信箱：已移除<br/>個人資料 QR Code：已移除<br/>檔案作者中繼資料：已清除</div></>:<><dl className="document-fields"><div><dt>申請人</dt><dd>沈有稜</dd></div><div><dt>學校</dt><dd>青嶼學苑（虛構）</dd></div><div><dt>信箱</dt><dd>shenbike24@example.com</dd></div>{!compact&&<div><dt>學號</dt><dd>F260017（虛構）</dd></div>}</dl>{!compact&&<div className="qr-note"><QrCode size={29}/><span>個人資料頁 QR Code<small>示意圖示，無法掃描</small></span></div>}<div className="metadata">檔案屬性 → 作者：沈有稜</div></>}
+ {safe?<><p>分享段落架構與寫作方法。</p><div className="removed-fields">姓名、學校、學號、信箱：已移除<br/>個人資料 QR Code：已移除<br/>檔案作者中繼資料：已清除</div></>:<><dl className="document-fields"><div><dt>申請人</dt><dd>沈有梭</dd></div><div><dt>學校</dt><dd>青嶼學苑（虛構）</dd></div><div><dt>信箱</dt><dd>shenbike24@example.com</dd></div>{!compact&&<div><dt>學號</dt><dd>F260017（虛構）</dd></div>}</dl>{!compact&&<div className="qr-note"><QrCode size={29}/><span>個人資料頁 QR Code<small>示意圖示，無法掃描</small></span></div>}<div className="metadata">檔案屬性 → 作者：沈有梭</div></>}
  </div></article>;
 }
 function SocialCard({safe=false}:{safe?:boolean}) {
@@ -28,7 +28,7 @@ function SocialCard({safe=false}:{safe?:boolean}) {
 }
 export function Evidence({kind}:{kind:string}) {
  return <section className={'evidence-stack '+(kind==='protected'?'protected-stack':'')} aria-label={kind==='protected'?'示範修正後的公開資料':'虛構案例公開資料'}>
- <div className="evidence-context"><span>{kind==='protected'?'CASE 001 · 示範修正版':'CASE 001 · 沈有稜'}</span><span>全部資料均為虛構</span></div>
+ <div className="evidence-context"><span>{kind==='protected'?'CASE 001 · 示範修正版':'CASE 001 · 沈有梭'}</span><span>全部資料均為虛構</span></div>
  {kind==='activity'&&<ActivityCard/>}
  {kind==='document'&&<DocumentCard/>}
  {kind==='accounts'&&<><ActivityCard compact/><DocumentCard compact/></>}
