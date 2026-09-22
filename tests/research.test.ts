@@ -11,7 +11,7 @@ import { Script } from 'node:vm';
 
 const origin='https://11430106-cloud.github.io';
 function database(){
- const sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync(new URL('../research/migrations/0001_sessions.sql',import.meta.url),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const migration of ['0001_sessions.sql','0002_survey_start.sql'])sqlite.exec(readFileSync(new URL('../research/migrations/'+migration,import.meta.url),'utf8'));
  return {
   sqlite,
   db:{prepare(sql:string){let args:unknown[]=[];return {bind(...values:unknown[]){args=values;return this;},first(){return sqlite.prepare(sql).get(...args as [])??null;},all(){return {results:sqlite.prepare(sql).all(...args as [])};},run(){const info=sqlite.prepare(sql).run(...args as []);return {meta:{changes:Number(info.changes)}};}};}}
@@ -53,6 +53,7 @@ test('consent, matched stages, retry, dropout, admin privacy, CSV and deletion',
  const second=await (await call(e,'/api/start','POST',{consent:true})).json() as {token:string;order:'AB'|'BA'};
  await call(e,'/api/pre','POST',{answers:correct(second.order==='AB'?'A':'B')},second.token); // 中途退出
  const rows=sqlite.prepare('SELECT * FROM sessions ORDER BY started_at').all() as unknown as Row[];
+ assert.ok(rows.find(r=>r.id===first.id)?.survey_started_at);
  const summary=summarize(rows);
  assert.equal(summary.participation.started.count,2);assert.equal(summary.participation.pre.count,2);assert.equal(summary.participation.complete.count,1);assert.equal(summary.participation.paired.count,1);
  assert.equal(summary.participation.dropout.duringExperience.count,1);assert.equal(summary.ability.gainPoints,100);assert.equal(summary.protection.percent,100);assert.equal(summary.actionIntention.count,1);assert.equal(summary.operationUnderstanding.denominator,2);assert.equal(summary.operationUnderstanding.percent,50);

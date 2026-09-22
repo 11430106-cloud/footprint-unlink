@@ -37,7 +37,7 @@ export function validateSurvey(input: unknown): Survey {
  return s as Survey;
 }
 
-export type Row = { id:string; order_code:'AB'|'BA'; started_at:string; pre_started_at:string|null; pre_completed_at:string|null; experience_started_at:string|null; experience_completed_at:string|null; post_started_at:string|null; post_completed_at:string|null; completed_at:string|null; pre_bank_version:string; post_bank_version:string; pre_answers:string|null; post_answers:string|null; pre_item_results:string|null; post_item_results:string|null; survey:string|null; pre_score:number|null; post_score:number|null; post_protection:number|null };
+export type Row = { id:string; order_code:'AB'|'BA'; started_at:string; pre_started_at:string|null; pre_completed_at:string|null; experience_started_at:string|null; experience_completed_at:string|null; post_started_at:string|null; post_completed_at:string|null; survey_started_at:string|null; completed_at:string|null; pre_bank_version:string; post_bank_version:string; pre_answers:string|null; post_answers:string|null; pre_item_results:string|null; post_item_results:string|null; survey:string|null; pre_score:number|null; post_score:number|null; post_protection:number|null };
 export function summarize(rows: Row[]) {
  const started=rows.length, pre=rows.filter(r=>r.pre_completed_at).length, experience=rows.filter(r=>r.experience_completed_at).length, post=rows.filter(r=>r.post_completed_at).length, complete=rows.filter(r=>r.completed_at).length;
  const paired=rows.filter(r=>r.pre_completed_at&&r.post_completed_at&&r.pre_score!==null&&r.post_score!==null);

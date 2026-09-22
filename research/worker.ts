@@ -24,7 +24,7 @@ async function admin(request:Request,env:Env){
 }
 
 function csv(rows:Row[]) {
- const columns=['id','consent','order_code','started_at','pre_started_at','pre_completed_at','experience_started_at','experience_completed_at','post_started_at','post_completed_at','completed_at','pre_bank_version','post_bank_version','pre_answers','post_answers','pre_item_results','post_item_results','pre_score','post_score','post_protection','survey'] as const;
+ const columns=['id','consent','order_code','started_at','pre_started_at','pre_completed_at','experience_started_at','experience_completed_at','post_started_at','post_completed_at','survey_started_at','completed_at','pre_bank_version','post_bank_version','pre_answers','post_answers','pre_item_results','post_item_results','pre_score','post_score','post_protection','survey'] as const;
  const quote=(x:unknown)=>'"'+String(x??'').replaceAll('"','""')+'"';
  // Formula prefix hardening for spreadsheet software. All user-supplied values are constrained IDs.
  return '\uFEFF'+columns.join(',')+'\r\n'+rows.map(row=>columns.map(c=>quote(c==='consent'?1:row[c])).join(',')).join('\r\n')+'\r\n';
@@ -89,7 +89,7 @@ export default {
    if(path==='/api/post'){
     if(current!=='post')return result({error:'後測已送出或順序錯誤。',stage:current},409);
     const answers=validateAnswers(secondBank(row),(body as {answers?:unknown})?.answers,row.post_bank_version),points=score(secondBank(row),answers,row.post_bank_version);
-    const change=await env.DB.prepare('UPDATE sessions SET post_answers=?, post_item_results=?, post_score=?, post_protection=?, post_completed_at=? WHERE id=? AND post_completed_at IS NULL').bind(JSON.stringify(answers),JSON.stringify(points.items),points.clue,Number(points.protection),now(),row.id).run();
+    const time=now();const change=await env.DB.prepare('UPDATE sessions SET post_answers=?, post_item_results=?, post_score=?, post_protection=?, post_completed_at=?, survey_started_at=? WHERE id=? AND post_completed_at IS NULL').bind(JSON.stringify(answers),JSON.stringify(points.items),points.clue,Number(points.protection),time,time,row.id).run();
     if(!change.meta.changes)return result({error:'後測已送出。'},409);return result({stage:'survey'});
    }
    if(path==='/api/finish'){
