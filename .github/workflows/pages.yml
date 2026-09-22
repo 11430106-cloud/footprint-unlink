@@ -34,12 +34,14 @@ jobs:
         run: npm ci
       - name: Check types
         run: npx tsc --noEmit
-      - name: Verify quiz scoring and reset
-        run: node --experimental-strip-types --test tests/quiz.test.ts
+      - name: Verify quiz and research flow
+        run: node --experimental-strip-types --test tests/quiz.test.ts tests/research.test.ts
       - name: Build static website
         run: npm run build
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          NEXT_PUBLIC_RESEARCH_API_URL: ${{ vars.RESEARCH_API_URL }}
+          NEXT_PUBLIC_RESEARCH_RETENTION_DAYS: ${{ vars.RESEARCH_RETENTION_DAYS }}
       - name: Upload website
         uses: actions/upload-pages-artifact@v5
         with:

@@ -8,9 +8,9 @@
 - 開啟本機網站：`npm run dev`
 - 產生靜態網站：`npm run build`
 - 檢查型別：`npx tsc --noEmit`
-- 驗證測驗邏輯：`node --experimental-strip-types --test tests/quiz.test.ts`
+- 驗證測驗與研究流程：`npm test`
 
-使用 Node.js 22.13 以上；本次在 Node.js 24 上建置。靜態成品在 `dist/client`，不需要網站後端。Sites 發布設定在 `.openai/hosting.json`。
+使用 Node.js 22.13 以上；本次在 Node.js 24 上建置。靜態成品在 `dist/client`。一般體驗不需要網站後端；研究模式另使用 Cloudflare Worker 和 D1。Sites 發布設定在 `.openai/hosting.json`，正式網站仍依使用者選擇部署 GitHub Pages。
 
 ## GitHub Pages
 
@@ -26,7 +26,7 @@
 
 「回到自己」不計分，結果只依勾選類型顯示回查建議。組合規則優先於同類一般建議，並依固定的建議順序呈現；此順序並非個人危險程度排名。「以上皆無」與其他選項互斥，「其他」提供四類線索的通用檢查方式。依 PRD 第 18、20、25 節，選配的 AI 與自由輸入暫不啟用。
 
-所有作答與自我檢核只在 React 記憶體狀態處理；不使用 localStorage、cookie、資料庫、廣告追蹤或外部 AI API 儲存或分析作答。重新整理即重設。
+一般入口的作答與自我檢核只在 React 記憶體處理；不儲存團隊測試紀錄，重新整理即重設。獨立的 `?mode=research` 入口在受測者同意後，才使用 localStorage 暫存進度，並送匿名測試資料到 Cloudflare Worker/D1；原八題的練習答案只暫存在本裝置供研究流程續填，不作前後測成效。題庫、後端、管理權限與部署步驟見 [研究測試部署與題庫草稿.md](研究測試部署與題庫草稿.md)。沒有 API 設定時研究入口顯示尚未開放。
 
 ## Windows 建置
 
@@ -34,8 +34,8 @@
 
 ## 驗證範圍
 
-v2 已通過 TypeScript 檢查與 10 項自動化測試，包含所有 256 種測驗正誤組合、2,048 種有效自我檢核組合、PRD 的三項組合規則、選項互斥、無效輸入、答案鎖定、修改自我檢核不改分數及完整重設。發行時另執行 `npm run build`。
+已通過 TypeScript 檢查與 12 項自動化測試，包含原測驗的 256 種正誤組合、2,048 種有效自我檢核組合，以及研究模式的同意、配對、重送、流失、管理 JWT/CSV/刪除。發行時另執行 `npm run build`。
 
-本次未進行瀏覽器逐題操作、360px 畫面實測或實際 A4 列印預覽；手機介面與 A4 專用列印樣式已實作，這些項目仍需實際瀏覽器驗收。
+研究模式已在本機瀏覽器走完前測、原八題、回到自己、後測及問卷，並測試重新整理續填及一般入口。尚未做 360px 畫面及實際 A4 列印預覽。
 
 瀏覽器支援 WebMCP 時提供 read_quiz_state、start_quiz、submit_quiz_answer、next_quiz_question、submit_self_check、reset_quiz。使用相同狀態轉換與輸入驗證；未取得可呼叫 WebMCP 的驗證環境，故未宣稱其註冊及執行契約已實際驗證，不支援時不影響一般操作。
