@@ -10,7 +10,7 @@
     "build": "node --import ./scripts/windows-shutdown.mjs node_modules/vinext/dist/cli.js build && node scripts/prepare-github-pages.mjs",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "test": "node --experimental-strip-types --test tests/quiz.test.ts tests/research.test.ts",
-    "research:db:local": "wrangler d1 migrations apply footprint-research-local --config research/wrangler.local.jsonc --local",
+    "research:db:local": "wrangler d1 migrations apply footprint-single-local-v2 --config research/wrangler.local.jsonc --local",
     "research:dev": "wrangler dev --config research/wrangler.local.jsonc --port 8788",
     "lint": "oxlint",
     "format": "oxfmt"

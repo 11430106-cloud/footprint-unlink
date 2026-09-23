@@ -2,7 +2,7 @@
   "name": "footprint-research-local",
   "main": "./worker.ts",
   "compatibility_date": "2026-05-22",
-  "d1_databases": [{"binding":"DB","database_name":"footprint-research-local","database_id":"00000000-0000-0000-0000-000000000000","migrations_dir":"migrations"}],
+  "d1_databases": [{"binding":"DB","database_name":"footprint-single-local-v2","database_id":"22222222-2222-2222-2222-222222222222","migrations_dir":"migrations"}],
   "vars": {
     "ALLOWED_ORIGIN": "http://localhost:3000",
     "TEAM_DOMAIN": "https://REPLACE.cloudflareaccess.com",

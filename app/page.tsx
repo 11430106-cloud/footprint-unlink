@@ -11,7 +11,7 @@ import { Evidence, ConnectionDiagram } from '@/components/evidence';
 import { Checklist } from '@/components/checklist';
 import { Tutorial } from '@/components/tutorial';
 import { SelfCheck, PersonalAdvice } from '@/components/self-check';
-import { ResearchMode } from '@/components/research-mode';
+import { ResearchMode, type StudyContext } from '@/components/research-mode';
 import { getAdvice, selfOptions } from '@/lib/self-check-engine';
 import questionData from '@/data/questions.json';
 import { calculateScores, initialState, isCorrect, transition, type Action, type Question } from '@/lib/quiz-engine';
@@ -22,30 +22,31 @@ type Tool={name:string;title:string;description:string;inputSchema:object;annota
 type ModelDocument=Document&{modelContext?:{registerTool:(tool:Tool,options:{signal:AbortSignal})=>void|Promise<void>}};
 
 export default function Home(){
- const [mode,setMode]=useState<'research'|'normal'>('normal');
- useEffect(()=>setMode(new URLSearchParams(window.location.search).get('mode')==='research'?'research':'normal'),[]);
- return mode==='research'?<ResearchMode experience={(onComplete,id)=><Experience researchComplete={onComplete} researchId={id}/>} />:<Experience/>;
+ return process.env.NEXT_PUBLIC_RESEARCH_API_URL?<ResearchMode experience={study=><Experience key={study?.id??'normal'} study={study}/>} />:<Experience/>;
 }
 
-function Experience({researchComplete,researchId}:{researchComplete?:()=>void;researchId?:string}) {
+function Experience({study}:{study?:StudyContext|null}) {
  const [state,setState]=useState(()=>{
-  if(researchId&&typeof window!=='undefined')try{const saved=JSON.parse(localStorage.getItem('footprint-research-experience-v1-'+researchId)||'null');if(saved&&['home','intro','quiz','self','result'].includes(saved.view)&&saved.answers&&typeof saved.answers==='object')return saved as ReturnType<typeof initialState>;}catch{}
+  if(study?.id&&typeof window!=='undefined')try{const saved=JSON.parse(localStorage.getItem('footprint-research-experience-v1-'+study.id)||'null');if(saved&&['home','intro','quiz','self','result'].includes(saved.view)&&saved.answers&&typeof saved.answers==='object')return saved as ReturnType<typeof initialState>;}catch{}
   return initialState();
  });
  const [overlay,setOverlay]=useState<'checklist'|'tutorial'|null>(null);
- const stateRef=useRef(state);stateRef.current=state;
+ const stateRef=useRef(state);
+ const completionAttempt=useRef('');
  const [error,setError]=useState('');
  const focusRef=useRef<HTMLDivElement>(null);
  const feedbackRef=useRef<HTMLDivElement>(null);
  const q=questions[state.index];
  const scores=calculateScores(questions,state.answers);
- useEffect(()=>{if(researchId)localStorage.setItem('footprint-research-experience-v1-'+researchId,JSON.stringify(state));},[state,researchId]);
+ useEffect(()=>{if(study?.id)localStorage.setItem('footprint-research-experience-v1-'+study.id,JSON.stringify(state));},[state,study?.id]);
+ useEffect(()=>{stateRef.current=state;},[state]);
+ useEffect(()=>{if(study&&state.view==='result'&&study.number===null&&completionAttempt.current!==study.id){completionAttempt.current=study.id;study.onComplete(state.answers);}},[state.answers,state.view,study]);
  function act(action:Action) {try{const next=transition(stateRef.current,action,questions);stateRef.current=next;setState(next);setError('');}catch(e){setError(e instanceof Error?e.message:'請再試一次。');}}
  useEffect(()=>{window.scrollTo({top:0,behavior:'instant'});focusRef.current?.focus({preventScroll:true});},[state.view,state.index,overlay]);
  useEffect(()=>{if(state.submitted&&state.view==='quiz'){feedbackRef.current?.focus({preventScroll:true});feedbackRef.current?.scrollIntoView({block:'nearest'});}},[state.submitted,state.view]);
 
  useEffect(()=>{
-  if(researchComplete)return;
+  if(study)return;
   const context=(document as ModelDocument).modelContext;
   if(!context?.registerTool)return;
   const lifecycle=new AbortController();
@@ -62,7 +63,7 @@ function Experience({researchComplete,researchId}:{researchComplete?:()=>void;re
   ];
   for(const tool of definitions)try{void Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}
   return ()=>lifecycle.abort();
- },[]);
+ },[study]);
 
  return <div className="site-shell">
  <a className="skip-link" href="#main-content">跳至主要內容</a>
@@ -78,9 +79,9 @@ function Experience({researchComplete,researchId}:{researchComplete?:()=>void;re
  {state.submitted&&<div className="answer-feedback" ref={feedbackRef} tabIndex={-1} role="region" aria-label="答題解說" aria-live="polite"><div className={'feedback-title '+(isCorrect(q,state.selected)?'good':'learn')}><CircleCheck size={22}/><h2>{isCorrect(q,state.selected)?'答對了，線索連起來了。':'一起看清楚這條線索。'}</h2></div><p>{q.explanation}</p><ul className="feedback-details">{q.options.filter(o=>state.selected.includes(o.id)||o.correct).map(o=><li key={o.id}><strong>{o.correct?(state.selected.includes(o.id)?'答對':'漏選'):(q.type==='single'?'你的選擇':'多選')} · {o.text}</strong><p>{o.reason}</p></li>)}</ul>{state.index===3&&<ConnectionDiagram/>}{state.index===7&&<div className="review-questions"><strong>回查時，再問自己四件事</strong><ol><li>能否找出真實姓名？</li><li>能否判斷固定地點？</li><li>能否推測固定時間？</li><li>能否連結到另一個平台？</li></ol></div>}<Button className="primary-button confirm-button" onClick={()=>act({type:'next'})}>{state.index===7?'第四階段：回到自己':state.index===3?'進入第二階段：防護':state.index===6?'進入第三階段：回查':'下一題'}<ArrowRight/></Button></div>}
  </section></div></main>}
  {state.view==='self'&&<SelfCheck selected={state.selfChoices} onToggle={id=>act({type:'select-self',id})} onSubmit={()=>act({type:'submit-self'})}/>}
- {state.view==='result'&&<main className="result-main"><div className="case-label"><span className="signal"/> CASE 001 <span>本次任務完成</span></div><div className="result-top"><div className="result-score" style={{'--score-angle':(scores.total*3.6)+'deg'} as React.CSSProperties}><div><span>足跡防護力</span><strong>{scores.total}<small>/ 100</small></strong></div></div><div className="result-title"><div className="eyebrow">你的本次作答表現</div><h1>{scores.rank}</h1><p>{scores.total>=80?'能辨認多數跨平台關聯，並選擇有效的防護方法。':scores.total>=60?'已有基本概念，再留意時間線索與帳號之間的關聯。':'先從重新檢查跨平台資料開始，練習找出容易忽略的連結。'}</p><div className="score-notice"><ShieldCheck size={20}/>測驗分數代表題目作答表現，不等於你真實帳號的安全程度。{researchComplete?'研究成效以另外的前後測計算。':''}</div></div></div><div className="score-breakdown">{['辨識力','防護能力','回查能力'].map((name,i)=><div key={name}><div><span>{name}</span><strong>{scores.parts[i]}<small> / {[40,40,20][i]}</small></strong></div><Progress value={scores.parts[i]/[40,40,20][i]*100} aria-label={name+'分數'}/><p>{questions.filter(x=>x.stage===i&&isCorrect(x,state.answers[x.id]??[])).length} / {questions.filter(x=>x.stage===i).length} 題答對</p></div>)}</div><PersonalAdvice selected={state.selfChoices} onEdit={()=>act({type:'review-self'})}/><section className="action-section"><div className="eyebrow">把防護帶回日常</div><h2>今天可以做的三件事</h2><ol className="action-list">{[['搜尋自己','登出帳號後，以一般搜尋者角度查看自己公開的資訊。'],['檢查路線與時間','查看運動紀錄、打卡及公開活動是否暴露固定規律。'],['檢查平台關聯','看看不同平台是否因相同帳號、頭像或簡介而容易被連結。']].map(([title,copy],i)=><li key={title}><span>0{i+1}</span><div><h3>{title}</h3><p>{copy}</p></div></li>)}</ol></section><div className="button-row result-buttons"><Button className="primary-button" onClick={()=>setOverlay('checklist')}><BookOpen/>查看完整檢核卡</Button>{researchComplete?<Button className="primary-button" onClick={researchComplete}>繼續後測 <ArrowRight/></Button>:<Button variant="outline" className="text-button" onClick={()=>act({type:'reset'})}><RotateCcw/>重新挑戰</Button>}</div><p className="score-method">各階段依答對題數等比例計分，四捨五入後相加。自我檢核不計分；{researchComplete?'研究模式請繼續後測。':'重新挑戰將清空本次答案、分數與勾選。'}</p></main>}
+ {state.view==='result'&&<main className="result-main"><div className="case-label"><span className="signal"/> CASE 001 <span>本次任務完成</span></div><div className="result-top"><div className="result-score" style={{'--score-angle':(scores.total*3.6)+'deg'} as React.CSSProperties}><div><span>足跡防護力</span><strong>{scores.total}<small>/ 100</small></strong></div></div><div className="result-title"><div className="eyebrow">你的本次作答表現</div><h1>{scores.rank}</h1><p>{scores.total>=80?'能辨認多數跨平台關聯，並選擇有效的防護方法。':scores.total>=60?'已有基本概念，再留意時間線索與帳號之間的關聯。':'先從重新檢查跨平台資料開始，練習找出容易忽略的連結。'}</p><div className="score-notice"><ShieldCheck size={20}/>測驗分數代表題目作答表現，不等於你真實帳號的安全程度。</div></div></div>{study&&<output className="completion-status" aria-live="polite">{study.number!==null?<>已送入統計後台。你的匿名完成編號：<strong>{study.number}</strong></>:study.busy?'正在送出匿名作答…':study.error||'正在準備送出匿名作答…'}</output>}<div className="score-breakdown">{['辨識力','防護能力','回查能力'].map((name,i)=><div key={name}><div><span>{name}</span><strong>{scores.parts[i]}<small> / {[40,40,20][i]}</small></strong></div><Progress value={scores.parts[i]/[40,40,20][i]*100} aria-label={name+'分數'}/><p>{questions.filter(x=>x.stage===i&&isCorrect(x,state.answers[x.id]??[])).length} / {questions.filter(x=>x.stage===i).length} 題答對</p></div>)}</div><PersonalAdvice selected={state.selfChoices} onEdit={()=>act({type:'review-self'})}/><section className="action-section"><div className="eyebrow">把防護帶回日常</div><h2>今天可以做的三件事</h2><ol className="action-list">{[['搜尋自己','登出帳號後，以一般搜尋者角度查看自己公開的資訊。'],['檢查路線與時間','查看運動紀錄、打卡及公開活動是否暴露固定規律。'],['檢查平台關聯','看看不同平台是否因相同帳號、頭像或簡介而容易被連結。']].map(([title,copy],i)=><li key={title}><span>0{i+1}</span><div><h3>{title}</h3><p>{copy}</p></div></li>)}</ol></section><div className="button-row result-buttons"><Button className="primary-button" onClick={()=>setOverlay('checklist')}><BookOpen/>查看完整檢核卡</Button>{study?(study.number!==null?<Button className="primary-button" onClick={study.onNext}>下一位受測者 <ArrowRight/></Button>:<Button className="primary-button" disabled={study.busy} onClick={()=>study.onComplete(state.answers)}>{study.busy?'送出中…':'重試送出'} <ArrowRight/></Button>):<Button variant="outline" className="text-button" onClick={()=>act({type:'reset'})}><RotateCcw/>重新挑戰</Button>}</div><p className="score-method">各階段依答對題數等比例計分，四捨五入後相加。自我檢核不計分；{study?'同意參加測試者，作答會送至後台計分。':'重新挑戰將清空本次答案、分數與勾選。'}</p></main>}
  </>}
  {error&&<p role="alert" className="error-message">{error}</p>}
  </div>
- <footer className="site-footer"><span>足跡防護 · 數位公民練習</span><span>{researchComplete?'研究模式：同意後儲存匿名前後測及問卷；原網站作答只暫存於此裝置供續填。':'一般體驗不儲存團隊測試紀錄；作答只在本次頁面計算，重新整理即重設。'}</span></footer></div>;
+ <footer className="site-footer"><span>足跡防護 · 數位公民練習</span><span>{study?'同意參加測試後儲存匿名八題作答與完成時間；此裝置暫存進度供續填。':'一般體驗不儲存團隊測試紀錄；作答只在本次頁面計算，重新整理即重設。'}</span></footer></div>;
 }
