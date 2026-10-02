@@ -22,7 +22,7 @@ type Tool={name:string;title:string;description:string;inputSchema:object;annota
 type ModelDocument=Document&{modelContext?:{registerTool:(tool:Tool,options:{signal:AbortSignal})=>void|Promise<void>}};
 
 export default function Home(){
- return process.env.NEXT_PUBLIC_RESEARCH_API_URL?<ResearchMode experience={study=><Experience key={study?.id??'normal'} study={study}/>} />:<Experience/>;
+ return <ResearchMode experience={study=><Experience key={study.id} study={study}/>} />;
 }
 
 function Experience({study}:{study?:StudyContext|null}) {

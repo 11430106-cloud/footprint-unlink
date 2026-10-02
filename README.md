@@ -10,7 +10,7 @@
 - 檢查型別：`npx tsc --noEmit`
 - 驗證測驗與研究流程：`npm test`
 
-使用 Node.js 22.13 以上；本次在 Node.js 24 上建置。靜態成品在 `dist/client`。一般體驗不需要網站後端；同意後的匿名統計另使用 Cloudflare Worker 和 D1。Sites 發布設定在 `.openai/hosting.json`，正式網站仍依使用者選擇部署 GitHub Pages。
+使用 Node.js 22.13 以上；本次在 Node.js 24 上建置。靜態成品在 `dist/client`。測驗須先同意匿名統計，使用 Cloudflare Worker 和 D1 建立紀錄及計分。Sites 發布設定在 `.openai/hosting.json`，正式網站仍依使用者選擇部署 GitHub Pages。
 
 ## GitHub Pages
 
@@ -26,7 +26,7 @@
 
 「回到自己」不計分，結果只依勾選類型顯示回查建議。組合規則優先於同類一般建議，並依固定的建議順序呈現；此順序並非個人危險程度排名。「以上皆無」與其他選項互斥，「其他」提供四類線索的通用檢查方式。依 PRD 第 18、20、25 節，選配的 AI 與自由輸入暫不啟用。
 
-設定研究 API 後，所有訪客進入首頁時會先選擇是否同意將匿名結果用於數據分析。同意者使用同一套原網站八題，瀏覽器暫存進度，完成送出後取得匿名完成編號；拒絕者仍可使用一般體驗，作答不送後台。未設定 API 時網站只提供一般體驗，不顯示收集資料的同意窗。單次八題統計不能當成前後測成效。題目、後端、管理權限與部署步驟見 [研究測試部署與題庫草稿.md](研究測試部署與題庫草稿.md)。
+所有訪客進入首頁時須先閱讀資料使用告知，勾選同意並按「同意並開始測驗」；未同意無法作答，也不建立測試紀錄。同意者使用同一套八題，瀏覽器暫存進度，完成送出後取得匿名完成編號。已同意者在同一瀏覽器可續填；「下一位受測者」會重新顯示告知。未設定研究 API 時顯示服務尚未設定，無法開始測驗。單次八題統計不能當成前後測成效。題目、後端、管理權限與部署步驟見 [研究測試部署與題庫草稿.md](研究測試部署與題庫草稿.md)。
 
 ## Windows 建置
 
@@ -37,5 +37,7 @@
 已通過 TypeScript 檢查與 12 項自動化測試，包含原測驗的 256 種正誤組合、2,048 種有效自我檢核組合，以及同意、後端計分、完成編號、重送、流失、管理 JWT、CSV 與刪除。發行時另執行 `npm run build`。
 
 資料流程已由自動測試驗證；部署正式 Cloudflare 服務前，仍須依部署文件走完一次瀏覽器測試。尚未做實際 A4 列印預覽。
+
+同意入口另有瀏覽器回歸檢查 `npm run test:consent`。先以正式公開 `NEXT_PUBLIC_RESEARCH_API_URL`、`NEXT_PUBLIC_BASE_PATH=/footprint-unlink` 建置；檢查程式會攔截所有研究 API，使用模擬資料，不寫入正式後台。需另備 Playwright 與 Chromium，可執行 `npm install --no-save --package-lock=false playwright`、`npx playwright install chromium`；也可用 `PLAYWRIGHT_MODULE` 指向已安裝的 Playwright，`PLAYWRIGHT_CHANNEL=chrome` 使用已安裝的 Chrome。檢查涵蓋未同意不可作答、取消勾選、連線失敗、完成送出、同意後續填，以及下一位重新同意。
 
 瀏覽器支援 WebMCP 時提供 read_quiz_state、start_quiz、submit_quiz_answer、next_quiz_question、submit_self_check、reset_quiz。使用相同狀態轉換與輸入驗證；未取得可呼叫 WebMCP 的驗證環境，故未宣稱其註冊及執行契約已實際驗證，不支援時不影響一般操作。
