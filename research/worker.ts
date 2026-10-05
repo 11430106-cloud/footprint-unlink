@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import { QUIZ_VERSION, grade, summarize, validateAnswers, type Row } from './core.ts';
+import { QUIZ_VERSION, questions, grade, summarize, validateAnswers, type Row } from './core.ts';
 import { adminHtml } from './admin.ts';
 
 type Env = { DB: D1Database; ALLOWED_ORIGIN: string; TEAM_DOMAIN: string; POLICY_AUD: string; ADMIN_EMAILS: string; RETENTION_DAYS: string };
@@ -10,13 +10,13 @@ const hash = async (token: string) => Array.from(new Uint8Array(await crypto.sub
 const rowsSql = 'SELECT s.id,s.started_at,s.quiz_version,c.number,c.completed_at,c.answers_json,c.item_results_json,c.total_score,c.recognition_score,c.protection_score,c.review_score FROM sessions s LEFT JOIN completions c ON c.session_id=s.id ORDER BY s.started_at';
 const body = async (request:Request) => { if(Number(request.headers.get('content-length')??0)>12000)throw Error('資料過長。');const text=await request.text();if(text.length>12000)throw Error('資料過長。');return JSON.parse(text) as unknown; };
 
-async function isAdmin(request:Request,env:Env) {
- if(!env.POLICY_AUD||!env.TEAM_DOMAIN||!env.ADMIN_EMAILS||env.POLICY_AUD.startsWith('REPLACE')||env.TEAM_DOMAIN.includes('REPLACE'))return false;
- const token=request.headers.get('Cf-Access-Jwt-Assertion');if(!token)return false;
- try {const issuer=new URL(env.TEAM_DOMAIN);if(issuer.protocol!=='https:'||!issuer.hostname.endsWith('.cloudflareaccess.com'))return false;
+async function adminIdentity(request:Request,env:Env):Promise<string|null> {
+ if(!env.POLICY_AUD||!env.TEAM_DOMAIN||!env.ADMIN_EMAILS||env.POLICY_AUD.startsWith('REPLACE')||env.TEAM_DOMAIN.includes('REPLACE'))return null;
+ const token=request.headers.get('Cf-Access-Jwt-Assertion');if(!token)return null;
+ try {const issuer=new URL(env.TEAM_DOMAIN);if(issuer.protocol!=='https:'||!issuer.hostname.endsWith('.cloudflareaccess.com'))return null;
   const {payload}=await jwtVerify(token,createRemoteJWKSet(new URL('/cdn-cgi/access/certs',issuer)),{issuer:issuer.origin,audience:env.POLICY_AUD,algorithms:['RS256']});
-  return typeof payload.email==='string'&&env.ADMIN_EMAILS.split(',').map(email=>email.trim().toLowerCase()).includes(payload.email.toLowerCase());
- } catch { return false; }
+  return typeof payload.email==='string'&&env.ADMIN_EMAILS.split(',').map(email=>email.trim().toLowerCase()).includes(payload.email.toLowerCase())?payload.email:null;
+ } catch { return null; }
 }
 
 function csv(rows:Row[]) {
@@ -29,9 +29,16 @@ const worker = {
  async fetch(request:Request,env:Env):Promise<Response> {
   const url=new URL(request.url),path=url.pathname,method=request.method;
   if(path==='/admin'||path.startsWith('/api/admin/')) {
-   if(!await isAdmin(request,env))return fail('管理者驗證失敗。',403);
+   const email=await adminIdentity(request,env);
+   if(!email)return fail('管理者驗證失敗。',403);
    if(path==='/admin'&&method==='GET')return new Response(adminHtml,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'",'X-Content-Type-Options':'nosniff'}});
-   if(path==='/api/admin/stats'&&method==='GET'){const {results}=await env.DB.prepare(rowsSql).all<Row>();return json(summarize(results));}
+   if(path==='/api/admin/stats'&&method==='GET'){
+    const {results}=await env.DB.prepare(rowsSql).all<Row>();
+    return json({...summarize(results),meta:{email,retentionDays:Number(env.RETENTION_DAYS),updatedAt:now(),quizVersion:QUIZ_VERSION},
+     catalog:questions.map(q=>({id:q.id,title:q.title,options:q.options.map(o=>({id:o.id,text:o.text}))})),
+     records:results.map(row=>({id:row.id,number:row.number,startedAt:row.started_at,completedAt:row.completed_at,quizVersion:row.quiz_version,
+      totalScore:row.total_score,recognitionScore:row.recognition_score,protectionScore:row.protection_score,reviewScore:row.review_score}))});
+   }
    if(path==='/api/admin/export'&&method==='GET'){const {results}=await env.DB.prepare(rowsSql).all<Row>();return new Response(csv(results),{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="footprint-quiz.csv"','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});}
    if(path==='/api/admin/sessions'&&method==='DELETE') {
     if(request.headers.get('Origin')!==url.origin)return fail('來源不符。',403);

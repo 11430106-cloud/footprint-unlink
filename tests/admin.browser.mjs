@@ -1,0 +1,57 @@
+import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { readFile, mkdir } from 'node:fs/promises';
+import { DatabaseSync } from 'node:sqlite';
+import { createRequire } from 'node:module';
+import { generateKeyPair, exportJWK, SignJWT } from 'jose';
+import worker from '../research/worker.ts';
+import { questions } from '../research/core.ts';
+const {chromium}=createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE||'playwright');
+const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');
+sqlite.exec(await readFile(new URL('../research/migrations/0001_single_quiz.sql',import.meta.url),'utf8'));
+const DB={prepare(sql){let args=[];return {bind(...values){args=values;return this;},first(){return sqlite.prepare(sql).get(...args)||null;},all(){return {results:sqlite.prepare(sql).all(...args)};},run(){return {meta:{changes:Number(sqlite.prepare(sql).run(...args).changes)}};}};}};
+const env={DB,ALLOWED_ORIGIN:'https://11430106-cloud.github.io',TEAM_DOMAIN:'https://browser-test.cloudflareaccess.com',POLICY_AUD:'local-test-audience',ADMIN_EMAILS:'test-admin@example.org',RETENTION_DAYS:'90'};
+const {privateKey,publicKey}=await generateKeyPair('RS256');const jwk=await exportJWK(publicKey);Object.assign(jwk,{kid:'local-test',use:'sig',alg:'RS256'});
+const jwt=await new SignJWT({email:env.ADMIN_EMAILS}).setProtectedHeader({alg:'RS256',kid:'local-test'}).setIssuer(env.TEAM_DOMAIN).setAudience(env.POLICY_AUD).setExpirationTime('10m').sign(privateKey);
+const originalFetch=globalThis.fetch;
+globalThis.fetch=async(...args)=>{const input=args[0];const url=input instanceof Request?input.url:input instanceof URL?input.href:input;return url.startsWith(env.TEAM_DOMAIN+'/cdn-cgi/access/certs')?Response.json({keys:[jwk]}):originalFetch(...args);};
+let authorized=true;
+const server=createServer(async(req,res)=>{try{
+ let body='';for await(const chunk of req)body+=chunk;
+ const headers=new Headers();for(const [name,value]of Object.entries(req.headers))if(value)headers.set(name,Array.isArray(value)?value.join(','):value);
+ if(authorized)headers.set('Cf-Access-Jwt-Assertion',jwt);
+ const response=await worker.fetch(new Request('http://127.0.0.1:'+server.address().port+req.url,{method:req.method,headers,...(body?{body}:{})}),env);
+ res.writeHead(response.status,Object.fromEntries(response.headers));res.end(await response.text());
+}catch(error){res.writeHead(500).end(error.message);}});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const base='http://127.0.0.1:'+server.address().port;
+const seed=async answers=>{const start=await worker.fetch(new Request(base+'/api/start',{method:'POST',headers:{Origin:env.ALLOWED_ORIGIN},body:JSON.stringify({consent:true})}),env);const session=await start.json();if(answers){const completion=await worker.fetch(new Request(base+'/api/complete',{method:'POST',headers:{Origin:env.ALLOWED_ORIGIN,Authorization:'Bearer '+session.token},body:JSON.stringify({answers})}),env);assert.equal(completion.status,200);}return session;};
+let browser;
+try{
+ browser=await chromium.launch({...(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{}),headless:true});
+ const page=await browser.newPage({viewport:{width:1360,height:900}});await page.goto(base+'/admin');
+ await page.getByRole('heading',{name:'匿名測試紀錄',exact:true}).waitFor();
+ assert.ok(await page.getByText('尚無資料',{exact:true}).count()>0);
+ assert.equal(await page.getByRole('button',{name:'匯出匿名 CSV',exact:true}).isEnabled(),true);
+ const correct=Object.fromEntries(questions.map(q=>[q.id,q.options.filter(o=>o.correct).map(o=>o.id)]));
+ const wrong=Object.fromEntries(questions.map(q=>[q.id,[q.options.find(o=>!o.correct)?.id||q.options[0].id]]));
+ await seed(correct);await seed(wrong);await seed(null);
+ await page.getByRole('button',{name:'重新整理',exact:true}).click();
+ await page.getByText('以下平均分數僅計算完成者，共 2 人。',{exact:true}).waitFor();
+ assert.match(await page.locator('#content').innerText(),/2 \/ 3（66.7%）/);
+ const records=page.locator('section').filter({has:page.getByRole('heading',{name:'匿名測試紀錄',exact:true})});assert.equal(await records.locator('tbody tr').count(),3);
+ const stats=await (await originalFetch(base+'/api/admin/stats')).json();assert.equal(stats.score.average,50);
+ const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'匯出匿名 CSV',exact:true}).click();const download=await downloadPromise;
+ const csv=await readFile(await download.path(),'utf8');assert.equal(csv.split('\r\n').length-2,stats.records.length);
+ for(const record of stats.records){const line=csv.split('\r\n').find(row=>row.startsWith('"'+record.id+'",'));assert.ok(line);assert.equal(Number(line.split(',').slice(-4)[0].replaceAll('"','')),record.totalScore??0);}
+ await page.evaluate(()=>{const label=document.createElement('p');label.textContent='本機驗證用假資料・不屬於正式測試結果';label.style.cssText='background:#f4d15a;color:#101c2b;padding:14px;font-weight:bold';document.querySelector('header').prepend(label);});
+ await mkdir('outputs',{recursive:true});await page.screenshot({path:'outputs/admin-preview.png',fullPage:true});
+ let confirmations=0;page.on('dialog',async dialog=>{confirmations++;await dialog.accept(dialog.type()==='prompt'?'刪除':undefined);});
+ await page.getByRole('button',{name:'刪除全部紀錄',exact:true}).click();await page.getByText('以下平均分數僅計算完成者，共 0 人。',{exact:true}).waitFor();assert.equal(confirmations,2);
+ assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM sessions').get().n,0);
+ authorized=false;await page.getByRole('button',{name:'重新整理',exact:true}).click();await page.getByRole('alert').filter({hasText:'403'}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'匯出匿名 CSV',exact:true}).isDisabled(),true);
+ assert.equal(await page.getByRole('heading',{name:'匿名測試紀錄',exact:true}).count(),0);
+ assert.equal((await originalFetch(base+'/api/admin/export')).status,403);
+ console.log('PASS: 後台無資料狀態、即時重新整理、匿名逐人紀錄、CSV 與統計一致、雙重刪除確認、未登入不可讀取與匯出。僅使用本機記憶體假資料庫及模擬 JWT。');
+}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));globalThis.fetch=originalFetch;sqlite.close();}

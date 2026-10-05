@@ -34,10 +34,14 @@
 
 ## 驗證範圍
 
-已通過 TypeScript 檢查與 12 項自動化測試，包含原測驗的 256 種正誤組合、2,048 種有效自我檢核組合，以及同意、後端計分、完成編號、重送、流失、管理 JWT、CSV 與刪除。發行時另執行 `npm run build`。
+已通過 TypeScript 檢查與 13 項自動化測試，包含原測驗的 256 種正誤組合、2,048 種有效自我檢核組合，以及同意、後端計分、完成編號、重送、流失、管理 JWT、CSV 與刪除。管理驗證另涵蓋未登入、非指定信箱、錯誤 AUD、錯誤發行者、過期與無效憑證。發行時另執行 `npm run build`。
 
 資料流程已由自動測試驗證；部署正式 Cloudflare 服務前，仍須依部署文件走完一次瀏覽器測試。尚未做實際 A4 列印預覽。
 
 同意入口另有瀏覽器回歸檢查 `npm run test:consent`。先以正式公開 `NEXT_PUBLIC_RESEARCH_API_URL`、`NEXT_PUBLIC_BASE_PATH=/footprint-unlink` 建置；檢查程式會攔截所有研究 API，使用模擬資料，不寫入正式後台。需另備 Playwright 與 Chromium，可執行 `npm install --no-save --package-lock=false playwright`、`npx playwright install chromium`；也可用 `PLAYWRIGHT_MODULE` 指向已安裝的 Playwright，`PLAYWRIGHT_CHANNEL=chrome` 使用已安裝的 Chrome。檢查涵蓋未同意不可作答、取消勾選、連線失敗、完成送出、同意後續填，以及下一位重新同意。
+
+後台瀏覽器檢查為 `npm run test:admin`，使用相同 Playwright 設定，啟動獨立本機記憶體資料庫及模擬 JWT。檢查無資料、更新統計、逐人紀錄、CSV 數字、雙重刪除確認與登入失效；不存取正式 D1。預覽存於 Git 忽略的 `outputs/admin-preview.png`，明確標示假資料。
+
+後台操作與完成登入設定請看 [後台使用與登入設定.md](後台使用與登入設定.md)。`npm run research:configure-admin` 只填入本機團隊網域及 AUD，不要求管理金鑰、不會建立 Access 規則，也不會自行部署。須在 Cloudflare 儲存指定管理者的 Access 規則後，再填設定並部署，才能使用正式管理登入。
 
 瀏覽器支援 WebMCP 時提供 read_quiz_state、start_quiz、submit_quiz_answer、next_quiz_question、submit_self_check、reset_quiz。使用相同狀態轉換與輸入驗證；未取得可呼叫 WebMCP 的驗證環境，故未宣稱其註冊及執行契約已實際驗證，不支援時不影響一般操作。

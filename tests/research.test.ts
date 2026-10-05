@@ -63,9 +63,27 @@ void test('consent, completion number, retry, dropout, protected stats, CSV and 
   try{
    const headers={'Cf-Access-Jwt-Assertion':jwt};
    const stats=await call(e,'/api/admin/stats','GET',undefined,undefined,headers);assert.equal(stats.status,200);
-   assert.deepEqual((await stats.json() as typeof summary).participation,summary.participation);
+   const dashboard=await stats.json() as typeof summary&{meta:{email:string;retentionDays:number};records:{id:string;number:number|null;totalScore:number|null}[]};
+   assert.deepEqual(dashboard.participation,summary.participation);
+   assert.equal(dashboard.meta.email,'admin@example.org');assert.equal(dashboard.meta.retentionDays,90);
+   assert.equal(dashboard.records.length,3);assert.equal(dashboard.records.filter(row=>row.number!==null).length,2);
+   assert.equal(dashboard.records.find(row=>row.id===first.id)?.totalScore,100);
+   assert.ok(!JSON.stringify(dashboard).includes(first.token));
+   const page=await call(e,'/admin','GET',undefined,undefined,headers);assert.equal(page.status,200);
+   assert.match(await page.text(),/匿名測試紀錄/);
+   const unauthorizedTokens=[
+    await new SignJWT({email:'stranger@example.org'}).setProtectedHeader({alg:'RS256',kid:'test-key'}).setIssuer(e.TEAM_DOMAIN).setAudience(e.POLICY_AUD).setExpirationTime('5m').sign(privateKey),
+    await new SignJWT({email:'admin@example.org'}).setProtectedHeader({alg:'RS256',kid:'test-key'}).setIssuer(e.TEAM_DOMAIN).setAudience('different-app').setExpirationTime('5m').sign(privateKey),
+    await new SignJWT({email:'admin@example.org'}).setProtectedHeader({alg:'RS256',kid:'test-key'}).setIssuer('https://wrong.cloudflareaccess.com').setAudience(e.POLICY_AUD).setExpirationTime('5m').sign(privateKey),
+    await new SignJWT({email:'admin@example.org'}).setProtectedHeader({alg:'RS256',kid:'test-key'}).setIssuer(e.TEAM_DOMAIN).setAudience(e.POLICY_AUD).setExpirationTime(1).sign(privateKey),
+    'not-a-valid-jwt'
+   ];
+   for(const invalid of [undefined,...unauthorizedTokens])for(const path of ['/admin','/api/admin/stats','/api/admin/export']){
+    assert.equal((await call(e,path,'GET',undefined,undefined,invalid?{'Cf-Access-Jwt-Assertion':invalid}:{})).status,403);
+   }
    const exported=await call(e,'/api/admin/export','GET',undefined,undefined,headers);assert.equal(exported.status,200);
    const csv=await exported.text();assert.equal(csv.split('\r\n').length-2,summary.participation.started.count);assert.ok(csv.includes(first.id));
+   for(const record of dashboard.records){const line=csv.split('\r\n').find(row=>row.startsWith('"'+record.id+'",'));assert.ok(line);assert.equal(Number(line.split(',').slice(-4)[0].replaceAll('"','')),record.totalScore??0);}
    assert.equal((await call(e,'/api/admin/sessions','DELETE',{all:true},undefined,headers)).status,403);
    const deleteRequest=new Request('https://research.example.workers.dev/api/admin/sessions',{method:'DELETE',headers:{...headers,Origin:'https://research.example.workers.dev'},body:JSON.stringify({all:true})});
    assert.equal((await worker.fetch(deleteRequest,e)).status,200);

@@ -35,7 +35,7 @@ jobs:
       - name: Check types
         run: npx tsc --noEmit
       - name: Verify quiz and research flow
-        run: node --experimental-strip-types --test tests/quiz.test.ts tests/research.test.ts
+        run: npm test
       - name: Build static website
         run: npm run build
         env:
