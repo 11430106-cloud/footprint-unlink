@@ -71,6 +71,14 @@ void test('consent, completion number, retry, dropout, protected stats, CSV and 
    assert.ok(!JSON.stringify(dashboard).includes(first.token));
    const page=await call(e,'/admin','GET',undefined,undefined,headers);assert.equal(page.status,200);
    assert.match(await page.text(),/匿名測試紀錄/);
+   const allowedTeam=['admin1@example.org','admin2@example.org','admin3@example.org','admin4@example.org'];
+   const teamEnv={...e,ADMIN_EMAILS:allowedTeam.join(', ')};
+   for(const email of allowedTeam){
+    const teamJwt=await new SignJWT({email}).setProtectedHeader({alg:'RS256',kid:'test-key'}).setIssuer(e.TEAM_DOMAIN).setAudience(e.POLICY_AUD).setExpirationTime('5m').sign(privateKey);
+    for(const path of ['/admin','/api/admin/stats','/api/admin/export'])assert.equal((await call(teamEnv,path,'GET',undefined,undefined,{'Cf-Access-Jwt-Assertion':teamJwt})).status,200);
+   }
+   const outsideJwt=await new SignJWT({email:'outside@example.org'}).setProtectedHeader({alg:'RS256',kid:'test-key'}).setIssuer(e.TEAM_DOMAIN).setAudience(e.POLICY_AUD).setExpirationTime('5m').sign(privateKey);
+   for(const path of ['/admin','/api/admin/stats','/api/admin/export'])assert.equal((await call(teamEnv,path,'GET',undefined,undefined,{'Cf-Access-Jwt-Assertion':outsideJwt})).status,403);
    const unauthorizedTokens=[
     await new SignJWT({email:'stranger@example.org'}).setProtectedHeader({alg:'RS256',kid:'test-key'}).setIssuer(e.TEAM_DOMAIN).setAudience(e.POLICY_AUD).setExpirationTime('5m').sign(privateKey),
     await new SignJWT({email:'admin@example.org'}).setProtectedHeader({alg:'RS256',kid:'test-key'}).setIssuer(e.TEAM_DOMAIN).setAudience('different-app').setExpirationTime('5m').sign(privateKey),

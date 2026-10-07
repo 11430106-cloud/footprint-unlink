@@ -42,6 +42,6 @@
 
 後台瀏覽器檢查為 `npm run test:admin`，使用相同 Playwright 設定，啟動獨立本機記憶體資料庫及模擬 JWT。檢查無資料、更新統計、逐人紀錄、CSV 數字、雙重刪除確認與登入失效；不存取正式 D1。預覽存於 Git 忽略的 `outputs/admin-preview.png`，明確標示假資料。
 
-後台操作與完成登入設定請看 [後台使用與登入設定.md](後台使用與登入設定.md)。`npm run research:configure-admin` 只填入本機團隊網域及 AUD，不要求管理金鑰、不會建立 Access 規則，也不會自行部署。須在 Cloudflare 儲存指定管理者的 Access 規則後，再填設定並部署，才能使用正式管理登入。
+後台操作請看 [後台使用與登入設定.md](後台使用與登入設定.md)。2026 年 10 月 7 日已部署 Cloudflare Access 與四個指定信箱的後端白名單，並成功驗證主要管理者的正式登入及 CSV 匯出；未登入的後台請求會轉到登入頁。另外三位管理者的首次實際登入須由本人完成。`npm run research:configure-admin` 供維護時填入本機團隊網域及 AUD，不要求管理金鑰、不會建立 Access 規則，也不會自行部署。
 
 瀏覽器支援 WebMCP 時提供 read_quiz_state、start_quiz、submit_quiz_answer、next_quiz_question、submit_self_check、reset_quiz。使用相同狀態轉換與輸入驗證；未取得可呼叫 WebMCP 的驗證環境，故未宣稱其註冊及執行契約已實際驗證，不支援時不影響一般操作。
