@@ -37,7 +37,8 @@ export async function publicStudy(request:Request,env:StudyEnv):Promise<Response
    if(s.stage==='pre'||s.stage==='post'){
     const catalog=publicBank(formFor(s,s.stage));for(const [id,value]of Object.entries(input.answers))if(!catalog.some(q=>q.id===id)||!Array.isArray(value)||value.some(x=>typeof x!=='string'||!catalog.find(q=>q.id===id)!.options.some(o=>o.id===x))||new Set(value).size!==value.length)throw Error('草稿格式錯誤。');
    }else if(s.stage==='survey'){
-    const v=input.answers;if(Object.keys(v).some(k=>!['actions','assistance','usability','problems','feedback'].includes(k))||typeof v.feedback!=='string'||v.feedback.length>400)throw Error('草稿格式錯誤。');
+    const v=input.answers,validIds=(value:unknown,catalog:{id:string}[])=>Array.isArray(value)&&value.length<=catalog.length&&value.every(id=>typeof id==='string'&&catalog.some(o=>o.id===id))&&new Set(value).size===value.length&&(!value.includes('none')||value.length===1);
+    if(Object.keys(v).some(k=>!['actions','assistance','usability','problems','feedback'].includes(k))||!validIds(v.actions,actions)||!validIds(v.problems,problems)||typeof v.assistance!=='string'||(v.assistance!==''&&!assistance.some(a=>a.id===v.assistance))||!Number.isInteger(v.usability)||Number(v.usability)<0||Number(v.usability)>5||typeof v.feedback!=='string'||v.feedback.length>400)throw Error('草稿格式錯誤。');
    }else return json({error:'學習進度由裝置暫存。'},400);
    await env.DB.prepare('UPDATE study_sessions SET draft_json=? WHERE id=? AND stage=?').bind(JSON.stringify(input.answers),s.id,s.stage).run();return json({ok:true});
   }

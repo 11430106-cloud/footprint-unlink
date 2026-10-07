@@ -45,6 +45,7 @@ void test('real API state machine, start and stage retries, consent, learning va
   const before=await (await call('session',undefined,token)).json();assert.ok(!JSON.stringify(before).includes('"correct"'));assert.ok(!JSON.stringify(before).includes('recognition'));
   for(const stage of ['pre','learning','post','survey']){const input=stage==='learning'?{stage,reviewCompleted:true,answers:Object.fromEntries(questions.map(q=>[q.id,q.options.filter(o=>o.correct).map(o=>o.id)]))}:stage==='survey'?{stage,answers:{actions:['route'],assistance:'none',usability:4,problems:['none'],feedback:''}}:{stage,answers:answers(first.order[stage==='pre'?0:1] as Form)};
    if(stage==='learning')assert.equal((await call('submit',{...input,reviewCompleted:false},token)).status,400);
+   if(stage==='survey'){assert.equal((await call('draft',{stage,answers:{actions:['none','route'],assistance:'',usability:0,problems:[],feedback:''}},token)).status,400);assert.equal((await call('draft',{stage,answers:{actions:[],assistance:'',usability:0,problems:[],feedback:''}},token)).status,200);assert.equal((await call('draft',{stage,answers:{actions:['unexpected'],assistance:'',usability:0,problems:[],feedback:''}},token)).status,400);}
    assert.equal((await call('submit',input,token)).status,200);assert.equal((await call('submit',input,token)).status,200);
   }
   assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM study_steps').get()!.n,4);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM sessions').get()!.n,1);
