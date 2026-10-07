@@ -8,7 +8,8 @@
     "TEAM_DOMAIN": "https://REPLACE.cloudflareaccess.com",
     "POLICY_AUD": "REPLACE_WITH_ACCESS_APPLICATION_AUD",
     "ADMIN_EMAILS": "REPLACE_WITH_ADMIN_EMAILS_COMMA_SEPARATED",
-    "RETENTION_DAYS": "90"
+    "RETENTION_DAYS": "90",
+    "STUDY_ENABLED": "false"
   },
   "triggers": {"crons":["0 3 * * *"]},
   "observability": {"enabled": false}

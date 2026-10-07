@@ -1,8 +1,10 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { QUIZ_VERSION, questions, grade, summarize, validateAnswers, type Row } from './core.ts';
 import { adminHtml } from './admin.ts';
+import { studyAdminHtml } from './study-admin.ts';
+import { publicStudy, adminStudy } from './paired-api.ts';
 
-type Env = { DB: D1Database; ALLOWED_ORIGIN: string; TEAM_DOMAIN: string; POLICY_AUD: string; ADMIN_EMAILS: string; RETENTION_DAYS: string };
+type Env = { DB: D1Database; ALLOWED_ORIGIN: string; TEAM_DOMAIN: string; POLICY_AUD: string; ADMIN_EMAILS: string; RETENTION_DAYS: string; STUDY_ENABLED?: string };
 const now = () => new Date().toISOString();
 const json = (value: unknown, status = 200, headers: HeadersInit = {}) => { const responseHeaders=new Headers(headers);responseHeaders.set('Cache-Control','no-store');return Response.json(value,{status,headers:responseHeaders}); };
 const fail = (message: string, status: number) => json({error:message},status);
@@ -28,10 +30,11 @@ function csv(rows:Row[]) {
 const worker = {
  async fetch(request:Request,env:Env):Promise<Response> {
   const url=new URL(request.url),path=url.pathname,method=request.method;
-  if(path==='/admin'||path.startsWith('/api/admin/')) {
+  if(path==='/admin'||path==='/admin/legacy'||path.startsWith('/api/admin/')) {
    const email=await adminIdentity(request,env);
    if(!email)return fail('管理者驗證失敗。',403);
-   if(path==='/admin'&&method==='GET')return new Response(adminHtml,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'",'X-Content-Type-Options':'nosniff'}});
+   if((path==='/admin'||path==='/admin/legacy')&&method==='GET')return new Response(path==='/admin'?studyAdminHtml:adminHtml,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'",'X-Content-Type-Options':'nosniff'}});
+   if(path.startsWith('/api/admin/study/')){try{return await adminStudy(request,env);}catch{return fail('研究資料尚未就緒或服務暫時中斷，請確認新增資料表已遷移。',500);}}
    if(path==='/api/admin/stats'&&method==='GET'){
     const {results}=await env.DB.prepare(rowsSql).all<Row>();
     return json({...summarize(results),meta:{email,retentionDays:Number(env.RETENTION_DAYS),updatedAt:now(),quizVersion:QUIZ_VERSION},
@@ -57,6 +60,7 @@ const worker = {
   const cors={'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization','Vary':'Origin','Cache-Control':'no-store'};
   if(method==='OPTIONS')return new Response(null,{status:204,headers:cors});
   const result=(value:unknown,status=200)=>json(value,status,cors);
+  if(path.startsWith('/api/study/')){const response=await publicStudy(request,env);for(const [name,value]of Object.entries(cors))response.headers.set(name,value);return response;}
   try {
    if(path==='/api/start'&&method==='POST') {
     const input=await body(request) as {consent?:unknown};if(input?.consent!==true)return result({error:'請先同意。'},400);
@@ -88,6 +92,7 @@ const worker = {
  async scheduled(_controller:ScheduledController,env:Env) {
   const days=Number(env.RETENTION_DAYS);if(!Number.isInteger(days)||days<1||days>3650)throw Error('RETENTION_DAYS 必須為 1–3650。');
   await env.DB.prepare('DELETE FROM sessions WHERE started_at < ?').bind(new Date(Date.now()-days*86400000).toISOString()).run();
+  await env.DB.prepare('DELETE FROM study_sessions WHERE started_at < ?').bind(new Date(Date.now()-days*86400000).toISOString()).run();
  }
 };
 

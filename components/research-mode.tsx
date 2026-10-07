@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import type { Answers } from '@/research/core';
 
 type Session = { id: string; token: string };
-export type StudyContext = { id: string; number: number | null; busy: boolean; error: string; onComplete: (answers: Answers) => void; onNext: () => void };
+export type StudyContext = { id: string; number: number | null; busy: boolean; error: string; paired?: boolean; onComplete: (answers: Answers) => void; onNext: () => void };
 const api = process.env.NEXT_PUBLIC_RESEARCH_API_URL?.replace(/\/$/,'');
 const retention = process.env.NEXT_PUBLIC_RESEARCH_RETENTION_DAYS || '90';
 const key = 'footprint-single-session-v1';

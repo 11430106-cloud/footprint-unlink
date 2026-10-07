@@ -29,7 +29,7 @@ try{
   }else if(action==='/api/complete'){completes++;await route.fulfill({json:{number:1}});}
   else await route.fulfill({json:{stage:completes?'done':'playing',number:completes?1:null}});
  });
- const url='http://127.0.0.1:'+server.address().port+'/footprint-unlink/';
+ const url='http://127.0.0.1:'+server.address().port+'/footprint-unlink/?legacy=1';
  await page.goto(url);
  const button=page.getByRole('button',{name:'同意並開始測驗',exact:true});
  await button.waitFor();assert.equal(await button.isDisabled(),true);assert.equal(starts,0);

@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {mkdir,readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {generateKeyPair,exportJWK,SignJWT} from 'jose';
+import worker from '../research/worker.ts';
+import {database,seed,fixture} from './paired-fixtures.ts';
+const {chromium}=createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE||'playwright');
+const {DB,sqlite}=database();
+const env={DB,ALLOWED_ORIGIN:'https://frontend.example',TEAM_DOMAIN:'https://paired-browser.cloudflareaccess.com',POLICY_AUD:'paired-local',ADMIN_EMAILS:'admin@example.org',RETENTION_DAYS:'90',STUDY_ENABLED:'false'};
+const {privateKey,publicKey}=await generateKeyPair('RS256');const jwk=await exportJWK(publicKey);Object.assign(jwk,{kid:'paired-browser',use:'sig',alg:'RS256'});
+const jwt=await new SignJWT({email:env.ADMIN_EMAILS}).setProtectedHeader({alg:'RS256',kid:jwk.kid}).setIssuer(env.TEAM_DOMAIN).setAudience(env.POLICY_AUD).setExpirationTime('10m').sign(privateKey);
+const nativeFetch=globalThis.fetch;globalThis.fetch=async(...args)=>String(args[0]).startsWith(env.TEAM_DOMAIN)?Response.json({keys:[jwk]}):nativeFetch(...args);
+let authorized=true;
+const server=createServer(async(req,res)=>{try{let body='';for await(const chunk of req)body+=chunk;const headers=new Headers();for(const [key,value]of Object.entries(req.headers))if(value)headers.set(key,String(value));if(authorized)headers.set('Cf-Access-Jwt-Assertion',jwt);const response=await worker.fetch(new Request(base+req.url,{method:req.method,headers,...(body?{body}:{})}),env);res.writeHead(response.status,Object.fromEntries(response.headers));res.end(await response.text());}catch(e){res.writeHead(500).end(e.message);}});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
+let browser;
+try{
+ browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{})});const page=await browser.newPage({viewport:{width:1360,height:900}});
+ await page.addInitScript(()=>{window.copied='';Object.defineProperty(navigator,'clipboard',{value:{writeText:async value=>{if(window.denyClipboard)throw Error('denied');window.copied=value;}}});});
+ await page.goto(base+'/admin');await page.getByText('A/B題庫草稿尚未正式開放；一般體驗與舊資料保留。',{exact:false}).waitFor();assert.ok(await page.getByText('尚無資料',{exact:false}).count());
+ await page.locator('#preview').click();await page.locator('#report-panel:visible').waitFor();assert.doesNotMatch(await page.locator('#report').inputValue(),/NaN|undefined|<[^>]+>/);
+ const records=Array.from({length:12},(_,i)=>fixture(i,i<6?'AB':'BA'));for(const record of records)seed(sqlite,record);
+ await page.locator('#refresh').click();await page.getByText('平均提升 25 百分點',{exact:true}).waitFor();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ for(const text of ['測試流程漏斗圖','前測與後測平均答對率','四類線索前後測比較圖','每位匿名受測者的前後測變化圖','防護判斷達標比例','行動意願選項分布','協助程度分布與操作理解','最常答錯題目排行'])assert.equal(await page.getByRole('heading',{name:text,exact:true}).count(),1);
+ assert.match(await page.locator('#content').innerText(),/83.3%（10\/12人）/);assert.match(await page.locator('#content').innerText(),/75%（9\/12人）/);
+ await page.locator('#copy').click();await page.getByText('已複製簡報整理資料',{exact:true}).waitFor();const copy=await page.evaluate(()=>window.copied);assert.match(copy,/25 百分點/);assert.match(copy,/83.3%（10\/12人）/);for(const record of records)assert.ok(!copy.includes(record.id));assert.doesNotMatch(copy,/王小明|示例高中|0912345678|admin@example|token_hash/);
+ await page.evaluate(()=>{window.denyClipboard=true;});await page.locator('#copy').click();await page.getByText('瀏覽器拒絕自動複製，請在文字框全選後手動複製。',{exact:true}).waitFor();assert.match(await page.locator('#report').inputValue(),/【給AI的任務】/);
+ const downloadPromise=page.waitForEvent('download');await page.locator('#txt').click();const downloaded=await downloadPromise;const txt=await readFile(await downloaded.path(),'utf8');assert.ok(txt.startsWith('\uFEFF'));assert.match(txt,/【防護判斷】/);assert.doesNotMatch(txt,/NaN|undefined/);
+ await page.locator('[name=testingDate]').fill('2026-10-07');await page.locator('[name=source]').fill('同齡自願參與者');await page.locator('[name=privacyReviewed]').check();await page.locator('#save').click();await page.getByText('已儲存補充欄位',{exact:true}).waitFor();await page.locator('#preview').click();assert.match(await page.locator('#report').inputValue(),/測試日期：2026-10-07/);assert.match(await page.locator('#report').inputValue(),/同齡自願參與者/);
+ const csv=await (await nativeFetch(base+'/api/admin/study/export')).text();assert.equal(csv.split('\r\n').length-2,12);assert.equal(csv.split('\r\n').filter(line=>line.includes(',"75","25",')).length,12);
+ await page.evaluate(()=>{const p=document.createElement('p');p.textContent='本機驗證用假資料（12人）・不屬於正式結果';p.style.cssText='background:#f4d15a;color:#101c2b;padding:12px';document.querySelector('header').prepend(p);});await mkdir('outputs',{recursive:true});await page.screenshot({path:'outputs/paired-admin-test.png',fullPage:true});
+ let confirmations=0;page.on('dialog',async d=>{confirmations++;await d.accept(d.type()==='prompt'?'刪除':undefined);});await page.locator('#delete-id').fill(records[0].id);await page.locator('#delete-one').click();await page.getByText('已刪除指定研究紀錄',{exact:true}).waitFor();assert.equal(confirmations,2);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM study_sessions').get().n,11);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM study_steps').get().n,44);
+ authorized=false;await page.locator('#refresh').click();await page.getByRole('alert').filter({hasText:'403'}).waitFor();assert.equal(await page.locator('#copy').isDisabled(),true);assert.equal(await page.locator('#report').inputValue(),'');assert.equal((await nativeFetch(base+'/api/admin/study/stats')).status,403);assert.deepEqual(errors,[]);
+ console.log('PASS: 8圖表、12人實際分母、最新複製／預覽／UTF-8 TXT、剪貼簿拒絕備援、CSV一致、補充欄位、個資排除、單筆雙重確認刪除、未登入封鎖。僅本機假資料。');
+}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));globalThis.fetch=nativeFetch;sqlite.close();}

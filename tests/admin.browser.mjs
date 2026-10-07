@@ -29,7 +29,7 @@ const seed=async answers=>{const start=await worker.fetch(new Request(base+'/api
 let browser;
 try{
  browser=await chromium.launch({...(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{}),headless:true});
- const page=await browser.newPage({viewport:{width:1360,height:900}});await page.goto(base+'/admin');
+ const page=await browser.newPage({viewport:{width:1360,height:900}});await page.goto(base+'/admin/legacy');
  await page.getByRole('heading',{name:'匿名測試紀錄',exact:true}).waitFor();
  assert.ok(await page.getByText('尚無資料',{exact:true}).count()>0);
  assert.equal(await page.getByRole('button',{name:'匯出匿名 CSV',exact:true}).isEnabled(),true);

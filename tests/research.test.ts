@@ -69,7 +69,7 @@ void test('consent, completion number, retry, dropout, protected stats, CSV and 
    assert.equal(dashboard.records.length,3);assert.equal(dashboard.records.filter(row=>row.number!==null).length,2);
    assert.equal(dashboard.records.find(row=>row.id===first.id)?.totalScore,100);
    assert.ok(!JSON.stringify(dashboard).includes(first.token));
-   const page=await call(e,'/admin','GET',undefined,undefined,headers);assert.equal(page.status,200);
+   const page=await call(e,'/admin/legacy','GET',undefined,undefined,headers);assert.equal(page.status,200);
    assert.match(await page.text(),/匿名測試紀錄/);
    const allowedTeam=['admin1@example.org','admin2@example.org','admin3@example.org','admin4@example.org'];
    const teamEnv={...e,ADMIN_EMAILS:allowedTeam.join(', ')};
