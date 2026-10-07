@@ -21,7 +21,8 @@ void test('dropouts retained in start denominator; no incomplete or mismatched e
  const drops=[0,1,2].map((count,i)=>{const r=fixture(20+i);r.completed_at=null;r.stage=['pre','learning','post'][i];r.steps=r.steps.slice(0,count);return r;});
  const s=summarizeStudy([...rows,...drops]);assert.equal(s.participation.started.count,15);assert.equal(s.participation.paired.count,12);assert.equal(s.operation.denominator,15);assert.equal(s.operation.met,false);assert.deepEqual(s.participation.dropouts.map(d=>d.count),[1,1,1,0]);
  const mismatch=fixture(30);mismatch.steps.find(s=>s.stage==='post')!.bank_version=bankVersion('A');mismatch.form_order='AB';assert.equal(summarizeStudy([mismatch]).participation.paired.count,0);
- const noSurvey=fixture(31);noSurvey.completed_at=null;noSurvey.stage='survey';noSurvey.steps.pop();const p=summarizeStudy([noSurvey]);assert.equal(p.participation.paired.count,1);assert.equal(p.operation.count,0);assert.equal(p.actionIntent.count,0);assert.equal(p.participation.completed.count,0);
+ assert.equal(summarizeStudy([mismatch]).participation.completed.count,1);
+ const noSurvey=fixture(31);noSurvey.completed_at=null;noSurvey.stage='survey';noSurvey.steps.pop();const p=summarizeStudy([noSurvey]);assert.equal(p.participation.paired.count,0);assert.equal(p.operation.count,0);assert.equal(p.actionIntent.count,0);assert.equal(p.participation.completed.count,0);assert.equal(p.participation.dropouts[3].count,1);assert.equal(p.recognition.meanChange,null);assert.match(studyCsv([noSurvey]),/,"survey","true","true","true","false","false","false"/);
 });
 void test('none option is exclusive; gains/steady/decline and empty states are not fake scores',()=>{
  assert.deepEqual(toggleExclusive(['route'],'none','none'),['none']);assert.deepEqual(toggleExclusive(['none'],'route','none'),['route']);assert.throws(()=>validateSurvey({actions:['none','route'],assistance:'none',usability:4,problems:['none'],feedback:''}));

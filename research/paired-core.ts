@@ -30,8 +30,10 @@ export function pairedResults(row:StudyRow){try{const pre=read(row,'pre'),post=r
  return {pre:gradeTest(forms[0],JSON.parse(pre.answers_json)),post:gradeTest(forms[1],JSON.parse(post.answers_json))};
  }catch{return null;}}
 function surveyOf(row:StudyRow){try{const step=read(row,'survey');return step?validateSurvey(JSON.parse(step.answers_json)):null;}catch{return null;}}
+export function flowCompleted(row:StudyRow){return row.stage==='done'&&!!row.completed_at&&!!surveyOf(row)&&(['pre','learning','post'] as const).every(stage=>!!read(row,stage));}
+export function effectivePair(row:StudyRow){return flowCompleted(row)?pairedResults(row):null;}
 export function summarizeStudy(rows:StudyRow[]){
- const started=rows.length,done=rows.filter(r=>r.stage==='done'&&r.completed_at&&surveyOf(r)&&pairedResults(r)),pairs=rows.flatMap(r=>{const result=pairedResults(r);return result?[{row:r,...result}]:[];}),n=pairs.length;
+ const started=rows.length,done=rows.filter(flowCompleted),pairs=rows.flatMap(r=>{const result=effectivePair(r);return result?[{row:r,...result}]:[];}),n=pairs.length;
  const stageCounts={pre:rows.filter(r=>read(r,'pre')).length,learning:rows.filter(r=>read(r,'learning')).length,post:rows.filter(r=>read(r,'post')).length,survey:done.length};
  const surveys=rows.flatMap(row=>{const value=surveyOf(row);return value?[value]:[];});
  const preCorrect=pairs.reduce((a,p)=>a+p.pre.items.slice(0,4).filter(i=>i.correct).length,0),postCorrect=pairs.reduce((a,p)=>a+p.post.items.slice(0,4).filter(i=>i.correct).length,0);
@@ -60,5 +62,5 @@ export function summarizeStudy(rows:StudyRow[]){
 export type Summary=ReturnType<typeof summarizeStudy>;
 export function studyCsv(rows:StudyRow[]){const columns=['order','study_version','website_version','pre_version','post_version','started_at','completed_at','pre_score','post_score','change_points','post_protection','actions','assistance','usability','problems','stage','pre_completed','learning_completed','post_completed','survey_completed','valid_pair','flow_completed'];
  const quote=(value:unknown)=>'"'+String(value??'').replaceAll('"','""')+'"';
- return '\uFEFF'+columns.join(',')+'\r\n'+rows.map(row=>{const p=pairedResults(row),s=surveyOf(row);return [row.form_order,row.study_version,row.website_version,row.pre_version,row.post_version,row.started_at,row.completed_at,p?.pre.recognition,p?.post.recognition,p?p.post.recognition-p.pre.recognition:null,p?.post.protection,s?.actions.join('|'),s?.assistance,s?.usability,s?.problems.join('|'),row.stage,!!read(row,'pre'),!!read(row,'learning'),!!read(row,'post'),!!s,!!p,!!(row.stage==='done'&&row.completed_at&&s&&p)].map(quote).join(',');}).join('\r\n')+'\r\n';}
+ return '\uFEFF'+columns.join(',')+'\r\n'+rows.map(row=>{const p=effectivePair(row),s=surveyOf(row);return [row.form_order,row.study_version,row.website_version,row.pre_version,row.post_version,row.started_at,row.completed_at,p?.pre.recognition,p?.post.recognition,p?p.post.recognition-p.pre.recognition:null,p?.post.protection,s?.actions.join('|'),s?.assistance,s?.usability,s?.problems.join('|'),row.stage,!!read(row,'pre'),!!read(row,'learning'),!!read(row,'post'),!!s,!!p,flowCompleted(row)].map(quote).join(',');}).join('\r\n')+'\r\n';}
 export const rawFeedback=(rows:StudyRow[])=>rows.flatMap(row=>{const s=surveyOf(row);return s?.feedback?[{text:s.feedback}]:[];});
